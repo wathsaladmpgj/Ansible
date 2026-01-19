@@ -1,0 +1,8 @@
+---
+- name: Project 3 - Manage Nginx Service (Install + Enable + Start + Verify)
+  hosts: linux
+  become: true
+
+  roles:
+    - nginx_service
+

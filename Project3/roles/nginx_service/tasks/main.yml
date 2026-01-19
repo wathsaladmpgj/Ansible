@@ -1,0 +1,53 @@
+---
+- name: Install Nginx on Debian/Ubuntu
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install Nginx on RHEL/CentOS/Rocky
+  ansible.builtin.yum:
+    name: nginx
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Deploy health page (index.html)
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ nginx_web_root }}/index.html"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart nginx
+
+- name: Ensure nginx is enabled at boot + running
+  ansible.builtin.systemd:
+    name: "{{ nginx_service_name }}"
+    enabled: true
+    state: started
+
+# "Check service status" (capture and print)
+- name: Get nginx service status
+  ansible.builtin.systemd:
+    name: "{{ nginx_service_name }}"
+  register: nginx_status
+
+- name: Show nginx status summary
+  ansible.builtin.debug:
+    msg:
+      - "Service name: {{ nginx_service_name }}"
+      - "ActiveState: {{ nginx_status.status.ActiveState }}"
+      - "SubState: {{ nginx_status.status.SubState }}"
+
+# Verification (real-world)
+- name: Verify nginx responds on localhost
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ nginx_port }}"
+    status_code: 200
+  register: nginx_http
+
+- name: Print HTTP verification result
+  ansible.builtin.debug:
+    msg: "Nginx HTTP check OK on {{ inventory_hostname }} (status={{ nginx_http.status }})"
+
