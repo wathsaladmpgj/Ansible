@@ -1,0 +1,37 @@
+---
+- name: Ensure sudo group exists (Ubuntu)
+  group:
+    name: "{{ sudo_group }}"
+    state: present
+
+- name: Create the user and add to sudo group
+  user:
+    name: "{{ new_user }}"
+    shell: /bin/bash
+    groups: "{{ sudo_group }}"
+    append: true
+    create_home: true
+    state: present
+
+- name: Add SSH public key for the user
+  authorized_key:
+    user: "{{ new_user }}"
+    state: present
+    key: "{{ lookup('file', ssh_pubkey_path) }}"
+
+- name: Allow passwordless sudo for the user
+  copy:
+    dest: "/etc/sudoers.d/{{ new_user }}"
+    content: "{{ new_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "/usr/sbin/visudo -cf %s"
+  when: passwordless_sudo | bool
+
+- name: Lock password login for the user (force SSH key login)
+  user:
+    name: "{{ new_user }}"
+    password_lock: true
+  when: lock_password | bool
+

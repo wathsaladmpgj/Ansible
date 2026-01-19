@@ -1,0 +1,7 @@
+---
+- name: Project 1 - Create user + SSH + sudo
+  hosts: linux
+  become: true
+  roles:
+    - users
+

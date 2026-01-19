@@ -1,0 +1,6 @@
+new_user: devops
+sudo_group: sudo
+ssh_pubkey_path: "/home/janith/ansible/ansible-ssh/sys_add_key.pub"
+passwordless_sudo: true
+lock_password: true
+
