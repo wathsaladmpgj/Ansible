@@ -1,0 +1,125 @@
+---
+
+    # ---------------- SSH Hardening ----------------
+    - name: Ensure OpenSSH server is installed
+      apt:
+        name: openssh-server
+        state: present
+        update_cache: yes
+
+    - name: Disable root SSH login
+      lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^#?PermitRootLogin\s+'
+        line: 'PermitRootLogin no'
+
+    - name: Disable password authentication (SSH keys only)
+      lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^#?PasswordAuthentication\s+'
+        line: 'PasswordAuthentication no'
+
+    - name: Change SSH port
+      lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^#?Port\s+'
+        line: "Port {{ ssh_port }}"
+
+    - name: Validate sshd config before restart
+      command: sshd -t
+      changed_when: false
+
+    # ---------------- Firewall (UFW) ----------------
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow NEW SSH port in UFW
+      ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+        proto: tcp
+
+    - name: Allow HTTP (80)
+      ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+
+    - name: Allow HTTPS (443)
+      ufw:
+        rule: allow
+        port: "443"
+        proto: tcp
+
+    - name: Deny old SSH port (22) in UFW
+      ufw:
+        rule: deny
+        port: "22"
+        proto: tcp
+
+    - name: Enable UFW (default deny incoming)
+      ufw:
+        state: enabled
+        policy: deny
+
+    # ---------------- Password Policies ----------------
+    - name: Install password quality module
+      apt:
+        name: libpam-pwquality
+        state: present
+
+    - name: Set pwquality min length
+      lineinfile:
+        path: "{{ pwquality_conf }}"
+        regexp: '^#?\s*minlen\s*='
+        line: "minlen = 12"
+
+    - name: Require at least 1 digit
+      lineinfile:
+        path: "{{ pwquality_conf }}"
+        regexp: '^#?\s*dcredit\s*='
+        line: "dcredit = -1"
+
+    - name: Require at least 1 uppercase
+      lineinfile:
+        path: "{{ pwquality_conf }}"
+        regexp: '^#?\s*ucredit\s*='
+        line: "ucredit = -1"
+
+    - name: Require at least 1 lowercase
+      lineinfile:
+        path: "{{ pwquality_conf }}"
+        regexp: '^#?\s*lcredit\s*='
+        line: "lcredit = -1"
+
+    - name: Require at least 1 special character
+      lineinfile:
+        path: "{{ pwquality_conf }}"
+        regexp: '^#?\s*ocredit\s*='
+        line: "ocredit = -1"
+
+    - name: Set password max days (90)
+      lineinfile:
+        path: "{{ login_defs }}"
+        regexp: '^PASS_MAX_DAYS'
+        line: "PASS_MAX_DAYS   90"
+
+    - name: Set password min days (1)
+      lineinfile:
+        path: "{{ login_defs }}"
+        regexp: '^PASS_MIN_DAYS'
+        line: "PASS_MIN_DAYS   1"
+
+    - name: Set password warning days (7)
+      lineinfile:
+        path: "{{ login_defs }}"
+        regexp: '^PASS_WARN_AGE'
+        line: "PASS_WARN_AGE   7"
+
+    # ---------------- Restart SSH safely ----------------
+    - name: Restart SSH service
+      service:
+        name: ssh
+        state: restarted

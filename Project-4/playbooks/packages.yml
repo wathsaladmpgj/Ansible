@@ -1,0 +1,12 @@
+- name: Project 4 - Basic Hardening (SSH + UFW + Password Policy)
+  hosts: ec2
+  become: yes
+
+  vars:
+    ssh_port: 2222
+    sshd_config_path: /etc/ssh/sshd_config
+    pwquality_conf: /etc/security/pwquality.conf
+    login_defs: /etc/login.defs
+
+  roles:
+    - packages
