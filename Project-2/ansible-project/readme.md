@@ -29,3 +29,7 @@ On one or more EC2 servers, Ansible will:
 ## 🏗 Architecture
 
 
+
+##Run and See Output
+###ansible-playbook -i inventory/project1/hosts playbooks/packages.yml
+
